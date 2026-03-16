@@ -38,6 +38,8 @@ const SYSTEM_PROMPT = `You are a Bible study assistant grounded in the Berean St
 
 IMPORTANT: Always use the search_bible tool to find relevant passages. Do not quote scripture from memory — use the tool to ensure accuracy. You may call the tool multiple times with different queries to find comprehensive results.
 
+The search tool uses SEMANTIC search over verse text — it finds verses whose content matches your query conceptually. It does NOT support searching by book name, chapter number, or verse reference. Instead of searching for "Hebrews 9" or "Romans 8:28", describe what the passage says, e.g. "the ark of the covenant contained the gold jar of manna and Aaron's staff" or "all things work together for good for those who love God".
+
 When responding:
 - Quote verses with their full reference (e.g. "John 3:16")
 - Provide context and explanation alongside the verses
@@ -47,7 +49,7 @@ const SEARCH_TOOL = {
   type: 'function' as const,
   function: {
     name: 'search_bible',
-    description: 'Semantically search the entire Bible (BSB translation, 31,000+ verses). Returns the most relevant verses grouped by chapter. Always use this tool when the user asks about Bible content — do not rely on your own knowledge of scripture.',
+    description: 'Semantically search the entire Bible (BSB translation, 31,000+ verses). Returns the most relevant verses based on meaning/content similarity. IMPORTANT: This is semantic search over verse TEXT only — do NOT search by book name, chapter, or verse reference (e.g. "Romans 8" will not work). Instead, describe the content you are looking for in natural language (e.g. "all things work together for good for those who love God").',
     parameters: {
       type: 'object',
       properties: {
@@ -60,6 +62,17 @@ const SEARCH_TOOL = {
     },
   },
 };
+
+interface ModelInfo {
+  id: string;
+  name: string;
+  promptPrice: number; // per 1M tokens
+  completionPrice: number; // per 1M tokens
+  contextLength: number | null;
+}
+
+const DEFAULT_MODEL = 'openrouter/free';
+const MODEL_STORAGE_KEY = 'openrouter_selected_model';
 
 interface ChatProps {
   apiKey: string | null;
@@ -102,16 +115,143 @@ function ThinkingDisplay({ content }: { content: string }) {
   );
 }
 
+function formatContext(len: number | null): string {
+  if (!len) return '—';
+  if (len >= 1_000_000) return `${(len / 1_000_000).toFixed(1)}M`;
+  if (len >= 1_000) return `${Math.round(len / 1_000)}k`;
+  return String(len);
+}
+
+function formatPrice(price: number): string {
+  if (price === 0) return 'Free';
+  if (price < 0.01) return `$${price.toFixed(4)}`;
+  if (price < 1) return `$${price.toFixed(3)}`;
+  return `$${price.toFixed(2)}`;
+}
+
+function ModelPickerModal({ models, selectedModel, onSelect, onClose }: {
+  models: ModelInfo[];
+  selectedModel: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchRef.current?.focus();
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  const filtered = search
+    ? models.filter(m => m.name.toLowerCase().includes(search.toLowerCase()) || m.id.toLowerCase().includes(search.toLowerCase()))
+    : models;
+
+  return (
+    <div className="model-modal-backdrop" onClick={onClose}>
+      <div className="model-modal" onClick={e => e.stopPropagation()}>
+        <div className="model-modal-header">
+          <h3>Select Model</h3>
+          <button className="model-modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="model-modal-search">
+          <input
+            ref={searchRef}
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search models..."
+            className="model-modal-search-input"
+          />
+        </div>
+        <div className="model-modal-list">
+          {filtered.length === 0 && (
+            <div className="model-modal-empty">No models match your search</div>
+          )}
+          {filtered.map(m => (
+            <div
+              key={m.id}
+              className={`model-modal-row ${m.id === selectedModel ? 'model-modal-row-selected' : ''}`}
+              onClick={() => { onSelect(m.id); onClose(); }}
+            >
+              <div className="model-modal-row-main">
+                <span className="model-modal-row-name">{m.name}</span>
+                {m.promptPrice === 0 && m.completionPrice === 0 && (
+                  <span className="model-modal-badge-free">Free</span>
+                )}
+              </div>
+              <div className="model-modal-row-details">
+                <span className="model-modal-row-detail">
+                  <span className="model-modal-row-label">In:</span> {formatPrice(m.promptPrice)}/M
+                </span>
+                <span className="model-modal-row-detail">
+                  <span className="model-modal-row-label">Out:</span> {formatPrice(m.completionPrice)}/M
+                </span>
+                <span className="model-modal-row-detail">
+                  <span className="model-modal-row-label">Context:</span> {formatContext(m.contextLength)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, searchPassages, isLoading }: ChatProps) {
   const [displayMessages, setDisplayMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [toolStatus, setToolStatus] = useState<string | null>(null);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem(MODEL_STORAGE_KEY) || DEFAULT_MODEL);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Keep full API message history separate from display
   const apiHistoryRef = useRef<ApiMessage[]>([]);
+  const modelsFetchedRef = useRef(false);
 
+  // Fetch models when API key becomes available
+  useEffect(() => {
+    if (!apiKey || modelsFetchedRef.current) return;
+    modelsFetchedRef.current = true;
+    setModelsLoading(true);
+
+    fetch('https://openrouter.ai/api/v1/models', {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.data) {
+          const filtered: ModelInfo[] = data.data
+            .filter((m: { supported_parameters?: string[]; architecture?: { output_modalities?: string[] } }) =>
+              m.supported_parameters?.includes('tools') &&
+              m.architecture?.output_modalities?.includes('text')
+            )
+            .map((m: { id: string; name: string; pricing?: { prompt?: string; completion?: string }; context_length?: number | null }) => ({
+              id: m.id,
+              name: m.name,
+              promptPrice: parseFloat(m.pricing?.prompt || '0') * 1_000_000,
+              completionPrice: parseFloat(m.pricing?.completion || '0') * 1_000_000,
+              contextLength: m.context_length ?? null,
+            }));
+          // Keep the API's default sort order (popular/new first)
+          setModels(filtered);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setModelsLoading(false));
+  }, [apiKey]);
+
+  const handleModelSelect = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+    localStorage.setItem(MODEL_STORAGE_KEY, modelId);
+  }, []);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayMessages, toolStatus]);
@@ -188,7 +328,7 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'openrouter/free',
+          model: selectedModel,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             ...apiHistoryRef.current,
@@ -360,10 +500,29 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
     );
   }
 
+  const selectedModelName = models.find(m => m.id === selectedModel)?.name || selectedModel;
+
   return (
     <div className="chat-container">
+      {showModelPicker && (
+        <ModelPickerModal
+          models={models}
+          selectedModel={selectedModel}
+          onSelect={handleModelSelect}
+          onClose={() => setShowModelPicker(false)}
+        />
+      )}
       <div className="chat-header">
-        <span>Connected to OpenRouter</span>
+        <div className="chat-header-left">
+          <button
+            className="model-picker-trigger"
+            onClick={() => setShowModelPicker(true)}
+            disabled={streaming || modelsLoading}
+          >
+            {modelsLoading ? 'Loading models...' : selectedModelName}
+            <span className="model-picker-arrow">&#9662;</span>
+          </button>
+        </div>
         <button onClick={onDisconnect} className="disconnect-button">Disconnect</button>
       </div>
       <div className="chat-messages">
