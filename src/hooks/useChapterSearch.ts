@@ -175,9 +175,84 @@ export function useChapterSearch() {
     return results.slice(0, topK);
   }
 
+  /**
+   * Search for the best passage matches across the entire Bible at verse granularity.
+   * Uses the same heuristic as chapter search (sliding window of 2, 3, and discounted single verse).
+   * Returns top passages with their chapter ID, best verse index within the chapter, and score.
+   */
+  function searchPassages(queryEmbedding: number[], topK = 10): { chapterId: string; title: string; score: number; bestVerseIdx: number; verseCount: number }[] {
+    if (!verseEmbeddings || verseIndex.length === 0) return [];
+
+    const SINGLE_VERSE_WEIGHT = 0.94;
+
+    // Score every verse
+    const scores = new Float32Array(verseIndex.length);
+    for (let i = 0; i < verseIndex.length; i++) {
+      const emb = verseEmbeddings.subarray(i * EMBED_DIM, (i + 1) * EMBED_DIM);
+      scores[i] = cosineSimilarity(queryEmbedding, emb);
+    }
+
+    // Group verse indices by chapter
+    const chapterVerseRanges = new Map<string, { start: number; end: number }>();
+    for (let i = 0; i < verseIndex.length; i++) {
+      const chId = verseIndex[i].c;
+      const range = chapterVerseRanges.get(chId);
+      if (!range) {
+        chapterVerseRanges.set(chId, { start: i, end: i + 1 });
+      } else {
+        range.end = i + 1;
+      }
+    }
+
+    // For each chapter, find the best passage and track which verse is the anchor
+    const results: { chapterId: string; title: string; score: number; bestVerseIdx: number; verseCount: number }[] = [];
+
+    for (const [chId, range] of chapterVerseRanges) {
+      const meta = chapterMeta.get(chId);
+      if (!meta) continue;
+
+      let best = -1;
+      let bestIdx = range.start;
+      const len = range.end - range.start;
+
+      // Discounted single-verse max
+      for (let i = range.start; i < range.end; i++) {
+        const s = scores[i] * SINGLE_VERSE_WEIGHT;
+        if (s > best) { best = s; bestIdx = i; }
+      }
+
+      // Sliding window of 2
+      if (len >= 2) {
+        for (let i = range.start; i < range.end - 1; i++) {
+          const s = (scores[i] + scores[i + 1]) / 2;
+          if (s > best) { best = s; bestIdx = i; }
+        }
+      }
+
+      // Sliding window of 3
+      if (len >= 3) {
+        for (let i = range.start; i < range.end - 2; i++) {
+          const s = (scores[i] + scores[i + 1] + scores[i + 2]) / 3;
+          if (s > best) { best = s; bestIdx = i; }
+        }
+      }
+
+      results.push({
+        chapterId: chId,
+        title: meta.title,
+        score: best,
+        bestVerseIdx: bestIdx - range.start, // relative to chapter start
+        verseCount: len,
+      });
+    }
+
+    results.sort((a, b) => b.score - a.score);
+    return results.slice(0, topK);
+  }
+
   const chapters = Array.from(chapterMeta.values());
 
-  return { chapters, verseCount: verseIndex.length, loading, loadStatus, loadProgress, loadDetail, error, search };
+  return { chapters, verseCount: verseIndex.length, loading, loadStatus, loadProgress, loadDetail, error, search, searchPassages };
 }
 
 /** Convert a IEEE 754 float16 (stored as uint16) to float32 */

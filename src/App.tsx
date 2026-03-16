@@ -3,17 +3,21 @@ import { SearchBar } from './components/SearchBar';
 import { ChapterResults } from './components/ChapterResults';
 import { ChapterDetail } from './components/ChapterDetail';
 import { TechDetails } from './components/TechDetails';
+import { Chat } from './components/Chat';
 import { useEmbeddingModel } from './hooks/useEmbeddingModel';
 import { useChapterSearch } from './hooks/useChapterSearch';
 import { useVerseHeatmap } from './hooks/useVerseHeatmap';
+import { useOpenRouter } from './hooks/useOpenRouter';
 import type { ChapterResult } from './types';
 import './App.css';
 
 function App() {
   const { loading: modelLoading, encode, error: modelError } = useEmbeddingModel();
-  const { chapters, verseCount, loading: dataLoading, loadStatus, loadProgress, loadDetail, error: dataError, search } = useChapterSearch();
+  const { chapters, verseCount, loading: dataLoading, loadStatus, loadProgress, loadDetail, error: dataError, search, searchPassages } = useChapterSearch();
   const { result: verseResult, loading: versesLoading, loadAndScore, clear: clearVerses } = useVerseHeatmap();
+  const { apiKey, connecting, connect, disconnect } = useOpenRouter();
 
+  const [activeTab, setActiveTab] = useState<'chat' | 'search'>('chat');
   const [results, setResults] = useState<ChapterResult[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
@@ -64,66 +68,95 @@ function App() {
         <p className="subtitle">Semantic search across the entire Bible — find chapters by concept, topic, or theme</p>
       </header>
 
-      {results.length === 0 && !searching && (
-        <div className="search-tips">
-          <h3>Search Tips</h3>
-          <p>This uses <strong>semantic search</strong> — describe what you're looking for in natural language. Longer, more descriptive queries work better than short keywords.</p>
-          <div className="tips-columns">
-            <div className="tip-good">
-              <h4>Works well</h4>
-              <ul>
-                <li>"jesus feeds five thousand with loaves and fish"</li>
-                <li>"paul shipwrecked on the way to rome"</li>
-                <li>"a man is beaten and helped by a stranger from samaria"</li>
-                <li>"david kills the giant with a sling and stone"</li>
-              </ul>
-            </div>
-            <div className="tip-bad">
-              <h4>Less effective</h4>
-              <ul>
-                <li>"feeding" <span className="tip-why">— too vague</span></li>
-                <li>"Romans 8" <span className="tip-why">— use a Bible app for references</span></li>
-                <li>"love" <span className="tip-why">— too broad, appears everywhere</span></li>
-                <li>"Goliath" <span className="tip-why">— keywords alone miss context</span></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
       {error && <div className="error">Error: {error}</div>}
 
-      <SearchBar
-        onSearch={handleSearch}
-        disabled={isLoading}
-        searching={searching}
-        modelLoading={modelLoading}
-        dataLoadStatus={loadStatus}
-        dataLoadProgress={loadProgress}
-        dataLoadDetail={loadDetail}
-      />
-
-      <div className="content">
-        <div className="left-panel">
-          <ChapterResults
-            results={results}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            searching={searching}
-          />
-        </div>
-        <div className="right-panel">
-          <ChapterDetail
-            chapterTitle={selectedChapter?.chapter.title ?? ''}
-            verses={verseResult?.verses ?? null}
-            bestWindowStart={verseResult?.bestWindowStart ?? 0}
-            bestWindowEnd={verseResult?.bestWindowEnd ?? 0}
-            loading={versesLoading}
-          />
-        </div>
+      <div className="tab-bar">
+        <button
+          className={`tab ${activeTab === 'chat' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('chat')}
+        >
+          Chat
+        </button>
+        <button
+          className={`tab ${activeTab === 'search' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('search')}
+        >
+          Search
+        </button>
       </div>
 
-      <TechDetails chapterCount={chapters.length} verseCount={verseCount} timing={timing} />
+      {activeTab === 'chat' ? (
+        <Chat
+          apiKey={apiKey}
+          connecting={connecting}
+          onConnect={connect}
+          onDisconnect={disconnect}
+          encode={encode}
+          searchPassages={searchPassages}
+          isLoading={isLoading}
+        />
+      ) : (
+        <>
+          <SearchBar
+            onSearch={handleSearch}
+            disabled={isLoading}
+            searching={searching}
+            modelLoading={modelLoading}
+            dataLoadStatus={loadStatus}
+            dataLoadProgress={loadProgress}
+            dataLoadDetail={loadDetail}
+          />
+
+          {results.length === 0 && !searching && (
+            <div className="search-tips">
+              <h3>Search Tips</h3>
+              <p>This uses <strong>semantic search</strong> — describe what you're looking for in natural language. Longer, more descriptive queries work better than short keywords.</p>
+              <div className="tips-columns">
+                <div className="tip-good">
+                  <h4>Works well</h4>
+                  <ul>
+                    <li>"jesus feeds five thousand with loaves and fish"</li>
+                    <li>"paul shipwrecked on the way to rome"</li>
+                    <li>"a man is beaten and helped by a stranger from samaria"</li>
+                    <li>"david kills the giant with a sling and stone"</li>
+                  </ul>
+                </div>
+                <div className="tip-bad">
+                  <h4>Less effective</h4>
+                  <ul>
+                    <li>"feeding" <span className="tip-why">— too vague</span></li>
+                    <li>"Romans 8" <span className="tip-why">— use a Bible app for references</span></li>
+                    <li>"love" <span className="tip-why">— too broad, appears everywhere</span></li>
+                    <li>"Goliath" <span className="tip-why">— keywords alone miss context</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="content">
+            <div className="left-panel">
+              <ChapterResults
+                results={results}
+                selectedId={selectedId}
+                onSelect={handleSelect}
+                searching={searching}
+              />
+            </div>
+            <div className="right-panel">
+              <ChapterDetail
+                chapterTitle={selectedChapter?.chapter.title ?? ''}
+                verses={verseResult?.verses ?? null}
+                bestWindowStart={verseResult?.bestWindowStart ?? 0}
+                bestWindowEnd={verseResult?.bestWindowEnd ?? 0}
+                loading={versesLoading}
+              />
+            </div>
+          </div>
+
+          <TechDetails chapterCount={chapters.length} verseCount={verseCount} timing={timing} />
+        </>
+      )}
     </div>
   );
 }
