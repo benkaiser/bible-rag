@@ -1,5 +1,7 @@
 # Bible RAG
 
+![Bible RAG chat interface](docs/chat-screenshot.webp)
+
 AI-powered Bible study grounded in actual scripture. Chat with an LLM that searches the Berean Standard Bible (31,086 verses) in real-time, ensuring every answer is verified against the source text — not recalled from memory.
 
 ## Why RAG?
