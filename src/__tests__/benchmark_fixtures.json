@@ -59,6 +59,96 @@
       "query": "jesus feeds five thousand with loaves and fish",
       "expected": ["John_6", "Matthew_14", "Mark_6", "Luke_9"],
       "maxRank": 5
+    },
+    {
+      "name": "Good Samaritan (long)",
+      "query": "a man is beaten by robbers and left half dead on the road from jerusalem to jericho and a priest and a levite pass by but a stranger from samaria stops and bandages his wounds and takes him to an inn",
+      "expected": ["Luke_10"],
+      "maxRank": 3
+    },
+    {
+      "name": "Water into wine (long)",
+      "query": "at a wedding celebration the wine ran out and the mother of jesus told the servants to do whatever he says and he told them to fill stone jars with water which he then turned into the finest wine",
+      "expected": ["John_2"],
+      "maxRank": 3
+    },
+    {
+      "name": "David kills Goliath (long)",
+      "query": "a young shepherd boy went out to fight a giant warrior who was challenging the armies of israel and he refused armor and instead used a sling and a smooth stone from the brook to strike the giant in the forehead and kill him",
+      "expected": ["1 Samuel_17"],
+      "maxRank": 3
+    },
+    {
+      "name": "Burning bush (long)",
+      "query": "a bush was burning with fire but was not consumed and god called out from the bush telling him to remove his sandals because he was standing on holy ground and commissioned him to go to pharaoh and bring the people out of egypt",
+      "expected": ["Exodus_3"],
+      "maxRank": 5
+    },
+    {
+      "name": "Daniel in the lions den (long)",
+      "query": "officials conspired against a faithful man who prayed three times a day and had him thrown into a den of lions but god sent an angel to shut the mouths of the lions and he was found unharmed the next morning",
+      "expected": ["Daniel_6"],
+      "maxRank": 5
+    },
+    {
+      "name": "Raising of Lazarus (long)",
+      "query": "a man had been dead and buried in a tomb for four days and jesus wept and then called out with a loud voice for him to come out and the dead man came out still wrapped in burial cloths",
+      "expected": ["John_11"],
+      "maxRank": 3
+    },
+    {
+      "name": "Walls of Jericho (long)",
+      "query": "the army marched around the city once a day for six days with priests carrying the ark and blowing trumpets and on the seventh day they marched seven times and shouted and the walls of the city collapsed",
+      "expected": ["Joshua_6"],
+      "maxRank": 3
+    },
+    {
+      "name": "Peter denies Jesus (long)",
+      "query": "a disciple who had sworn he would never abandon his master was confronted by servants and bystanders in the courtyard during the trial and three times he denied knowing him and then the rooster crowed and he wept bitterly",
+      "expected": ["Luke_22", "Matthew_26", "Mark_14", "John_18"],
+      "maxRank": 5
+    },
+    {
+      "name": "Shipwreck of Paul (long)",
+      "query": "a prisoner being transported by ship to stand trial before caesar encountered a violent storm called a northeaster that battered the ship for many days until it ran aground on an island and broke apart but all aboard survived by swimming or clinging to planks",
+      "expected": ["Acts_27"],
+      "maxRank": 3
+    },
+    {
+      "name": "Feeding of the 5000 (long)",
+      "query": "a large crowd of thousands had gathered and had nothing to eat and a boy had five barley loaves and two small fish which were blessed and broken and distributed to the crowd and everyone ate their fill and twelve baskets of leftovers were collected",
+      "expected": ["John_6", "Matthew_14", "Mark_6", "Luke_9"],
+      "maxRank": 3
+    },
+    {
+      "name": "Noah's Ark (long)",
+      "query": "god instructed a righteous man to build a large boat and bring two of every kind of animal aboard because a great flood was coming to destroy the earth and rain fell for forty days and forty nights covering the mountains",
+      "expected": ["Genesis_6", "Genesis_7"],
+      "maxRank": 3
+    },
+    {
+      "name": "Sermon on the Mount (long)",
+      "query": "blessed are the poor in spirit the meek and those who hunger and thirst for righteousness and those who are persecuted for theirs is the kingdom of heaven and you are the salt of the earth and the light of the world",
+      "expected": ["Matthew_5"],
+      "maxRank": 3
+    },
+    {
+      "name": "Creation (long)",
+      "query": "in the beginning god created the heavens and the earth and the earth was formless and void and darkness covered the deep and god said let there be light and separated the light from the darkness calling them day and night",
+      "expected": ["Genesis_1"],
+      "maxRank": 3
+    },
+    {
+      "name": "Exodus Red Sea (long)",
+      "query": "the people were trapped between the army of pharaoh and the sea and god parted the waters so they could cross on dry ground and when the army pursued them the waters came crashing back and drowned the chariots and horsemen",
+      "expected": ["Exodus_14"],
+      "maxRank": 3
+    },
+    {
+      "name": "Love chapter (long)",
+      "query": "love is patient and kind it does not envy or boast it is not proud or rude it does not seek its own way it is not easily angered and keeps no record of wrongs love bears all things believes all things hopes all things and endures all things love never fails",
+      "expected": ["1 Corinthians_13"],
+      "maxRank": 3
     }
   ]
 }
