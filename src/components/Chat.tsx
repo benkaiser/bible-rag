@@ -294,7 +294,7 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
 
   const fetchVerseTexts = useCallback(async (chapterId: string): Promise<{ verse: string; text: string }[]> => {
     try {
-      const resp = await fetch(`/data/verses/${chapterId}.json`);
+      const resp = await fetch(`${import.meta.env.BASE_URL}data/verses/${chapterId}.json`);
       const data = await resp.json();
       return data.verses || [];
     } catch {

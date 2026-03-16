@@ -35,9 +35,9 @@ export function useChapterSearch() {
         setLoadDetail('Downloading verse data...');
 
         const [indexResp, embResp, metaResp] = await Promise.all([
-          fetch('/data/verses_index.json'),
-          fetch('/data/verses_embeddings.bin'),
-          fetch('/data/chapters.json'),
+          fetch(`${import.meta.env.BASE_URL}data/verses_index.json`),
+          fetch(`${import.meta.env.BASE_URL}data/verses_embeddings.bin`),
+          fetch(`${import.meta.env.BASE_URL}data/chapters.json`),
         ]);
 
         // Stream the large embeddings file with progress

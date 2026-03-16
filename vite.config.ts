@@ -4,6 +4,7 @@ import { statSync } from 'fs'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/bible-rag/',
   plugins: [
     react(),
     {

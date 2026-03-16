@@ -30,8 +30,8 @@ export function useVerseHeatmap() {
       let data = cache.get(chapterId);
       if (!data) {
         const [metaResp, binResp] = await Promise.all([
-          fetch(`/data/verses/${chapterId}.json`),
-          fetch(`/data/verses/${chapterId}.bin`),
+          fetch(`${import.meta.env.BASE_URL}data/verses/${chapterId}.json`),
+          fetch(`${import.meta.env.BASE_URL}data/verses/${chapterId}.bin`),
         ]);
         const metaData: VersesMetaData = await metaResp.json();
         const buffer = await binResp.arrayBuffer();

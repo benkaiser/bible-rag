@@ -48,7 +48,7 @@ export function useEmbeddingModel() {
           pipeline('feature-extraction', 'MongoDB/mdbr-leaf-ir', {
             dtype: 'q8',
           }),
-          fetch('/data/dense_layer.bin').then(r => r.arrayBuffer()),
+          fetch(`${import.meta.env.BASE_URL}data/dense_layer.bin`).then(r => r.arrayBuffer()),
         ]);
 
         modelRef.current = pipe;
