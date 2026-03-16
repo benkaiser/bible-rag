@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // Display message types
 interface TextMessage {
@@ -670,7 +671,7 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
             <div key={i} className={`chat-message chat-message-${msg.role}`}>
               <div className="chat-message-content">
                 {msg.role === 'assistant'
-                  ? <Markdown key={msg.content.length}>{msg.content}</Markdown>
+                  ? <Markdown key={msg.content.length} remarkPlugins={[remarkGfm]}>{msg.content}</Markdown>
                   : msg.content}
               </div>
             </div>

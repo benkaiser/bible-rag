@@ -831,6 +831,30 @@ header h1 {
   margin: 0.75rem 0;
 }
 
+.chat-message-assistant .chat-message-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+  font-size: 0.9em;
+}
+
+.chat-message-assistant .chat-message-content th,
+.chat-message-assistant .chat-message-content td {
+  border: 1px solid #ddd5c9;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.chat-message-assistant .chat-message-content th {
+  background: #e8e0d4;
+  color: #3a2d1e;
+  font-weight: 600;
+}
+
+.chat-message-assistant .chat-message-content tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .chat-tool-status {
   font-size: 0.85rem;
   color: #b58900;
