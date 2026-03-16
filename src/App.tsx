@@ -85,7 +85,7 @@ function App() {
         </button>
       </div>
 
-      {activeTab === 'chat' ? (
+      <div style={{ display: activeTab === 'chat' ? 'block' : 'none' }}>
         <Chat
           apiKey={apiKey}
           connecting={connecting}
@@ -95,68 +95,68 @@ function App() {
           searchPassages={searchPassages}
           isLoading={isLoading}
         />
-      ) : (
-        <>
-          <SearchBar
-            onSearch={handleSearch}
-            disabled={isLoading}
-            searching={searching}
-            modelLoading={modelLoading}
-            dataLoadStatus={loadStatus}
-            dataLoadProgress={loadProgress}
-            dataLoadDetail={loadDetail}
-          />
+      </div>
 
-          {results.length === 0 && !searching && (
-            <div className="search-tips">
-              <h3>Search Tips</h3>
-              <p>This uses <strong>semantic search</strong> — describe what you're looking for in natural language. Longer, more descriptive queries work better than short keywords.</p>
-              <div className="tips-columns">
-                <div className="tip-good">
-                  <h4>Works well</h4>
-                  <ul>
-                    <li>"jesus feeds five thousand with loaves and fish"</li>
-                    <li>"paul shipwrecked on the way to rome"</li>
-                    <li>"a man is beaten and helped by a stranger from samaria"</li>
-                    <li>"david kills the giant with a sling and stone"</li>
-                  </ul>
-                </div>
-                <div className="tip-bad">
-                  <h4>Less effective</h4>
-                  <ul>
-                    <li>"feeding" <span className="tip-why">— too vague</span></li>
-                    <li>"Romans 8" <span className="tip-why">— use a Bible app for references</span></li>
-                    <li>"love" <span className="tip-why">— too broad, appears everywhere</span></li>
-                    <li>"Goliath" <span className="tip-why">— keywords alone miss context</span></li>
-                  </ul>
-                </div>
+      <div style={{ display: activeTab === 'search' ? 'block' : 'none' }}>
+        <SearchBar
+          onSearch={handleSearch}
+          disabled={isLoading}
+          searching={searching}
+          modelLoading={modelLoading}
+          dataLoadStatus={loadStatus}
+          dataLoadProgress={loadProgress}
+          dataLoadDetail={loadDetail}
+        />
+
+        {results.length === 0 && !searching && (
+          <div className="search-tips">
+            <h3>Search Tips</h3>
+            <p>This uses <strong>semantic search</strong> — describe what you're looking for in natural language. Longer, more descriptive queries work better than short keywords.</p>
+            <div className="tips-columns">
+              <div className="tip-good">
+                <h4>Works well</h4>
+                <ul>
+                  <li>"jesus feeds five thousand with loaves and fish"</li>
+                  <li>"paul shipwrecked on the way to rome"</li>
+                  <li>"a man is beaten and helped by a stranger from samaria"</li>
+                  <li>"david kills the giant with a sling and stone"</li>
+                </ul>
+              </div>
+              <div className="tip-bad">
+                <h4>Less effective</h4>
+                <ul>
+                  <li>"feeding" <span className="tip-why">— too vague</span></li>
+                  <li>"Romans 8" <span className="tip-why">— use a Bible app for references</span></li>
+                  <li>"love" <span className="tip-why">— too broad, appears everywhere</span></li>
+                  <li>"Goliath" <span className="tip-why">— keywords alone miss context</span></li>
+                </ul>
               </div>
             </div>
-          )}
-
-          <div className="content">
-            <div className="left-panel">
-              <ChapterResults
-                results={results}
-                selectedId={selectedId}
-                onSelect={handleSelect}
-                searching={searching}
-              />
-            </div>
-            <div className="right-panel">
-              <ChapterDetail
-                chapterTitle={selectedChapter?.chapter.title ?? ''}
-                verses={verseResult?.verses ?? null}
-                bestWindowStart={verseResult?.bestWindowStart ?? 0}
-                bestWindowEnd={verseResult?.bestWindowEnd ?? 0}
-                loading={versesLoading}
-              />
-            </div>
           </div>
+        )}
 
-          <TechDetails chapterCount={chapters.length} verseCount={verseCount} timing={timing} />
-        </>
-      )}
+        <div className="content">
+          <div className="left-panel">
+            <ChapterResults
+              results={results}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              searching={searching}
+            />
+          </div>
+          <div className="right-panel">
+            <ChapterDetail
+              chapterTitle={selectedChapter?.chapter.title ?? ''}
+              verses={verseResult?.verses ?? null}
+              bestWindowStart={verseResult?.bestWindowStart ?? 0}
+              bestWindowEnd={verseResult?.bestWindowEnd ?? 0}
+              loading={versesLoading}
+            />
+          </div>
+        </div>
+
+        <TechDetails chapterCount={chapters.length} verseCount={verseCount} timing={timing} />
+      </div>
     </div>
   );
 }

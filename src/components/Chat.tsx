@@ -36,20 +36,23 @@ interface ToolCall {
 
 const SYSTEM_PROMPT = `You are a Bible study assistant grounded in the Berean Standard Bible (BSB).
 
-IMPORTANT: Always use the search_bible tool to find relevant passages. Do not quote scripture from memory — use the tool to ensure accuracy. You may call the tool multiple times with different queries to find comprehensive results.
+IMPORTANT: Always use the provided tools to find and verify passages. Do not quote scripture from memory — use the tools to ensure accuracy.
 
-The search tool uses SEMANTIC search over verse text — it finds verses whose content matches your query conceptually. It does NOT support searching by book name, chapter number, or verse reference. Instead of searching for "Hebrews 9" or "Romans 8:28", describe what the passage says, e.g. "the ark of the covenant contained the gold jar of manna and Aaron's staff" or "all things work together for good for those who love God".
+You have two tools:
+- **search_bible**: Semantic search — describe what you're looking for in natural language. Best for topics, themes, and finding passages when you don't know the exact reference.
+- **lookup_passage**: Direct lookup by book, chapter, and optional verse range. Use this when you know the specific reference (e.g. "Romans 8", "John 3:16", "Genesis 1:1-5").
 
 When responding:
 - Quote verses with their full reference (e.g. "John 3:16")
 - Provide context and explanation alongside the verses
-- If asked about themes or topics, search for them and present what the Bible says`;
+- If asked about themes or topics, search for them and present what the Bible says
+- You may call tools multiple times with different queries to find comprehensive results`;
 
 const SEARCH_TOOL = {
   type: 'function' as const,
   function: {
     name: 'search_bible',
-    description: 'Semantically search the entire Bible (BSB translation, 31,000+ verses). Returns the most relevant verses based on meaning/content similarity. IMPORTANT: This is semantic search over verse TEXT only — do NOT search by book name, chapter, or verse reference (e.g. "Romans 8" will not work). Instead, describe the content you are looking for in natural language (e.g. "all things work together for good for those who love God").',
+    description: 'Semantically search the entire Bible (BSB translation, 31,000+ verses). Returns the most relevant verses based on meaning/content similarity. Use this when you want to find passages by topic or theme. Describe the content you are looking for in natural language (e.g. "all things work together for good for those who love God"). Do NOT use book/chapter references here — use lookup_passage for that.',
     parameters: {
       type: 'object',
       properties: {
@@ -59,6 +62,36 @@ const SEARCH_TOOL = {
         },
       },
       required: ['query'],
+    },
+  },
+};
+
+const LOOKUP_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: 'lookup_passage',
+    description: 'Look up a specific Bible passage by book, chapter, and optional verse range. Use this when you know the exact reference (e.g. book="Romans", chapter=8 or book="John", chapter=3, verse_start=16, verse_end=17). Returns the full text of the requested verses.',
+    parameters: {
+      type: 'object',
+      properties: {
+        book: {
+          type: 'string',
+          description: "Book name (e.g. 'Genesis', '1 Corinthians', 'Psalm', 'Song of Solomon')",
+        },
+        chapter: {
+          type: 'number',
+          description: 'Chapter number',
+        },
+        verse_start: {
+          type: 'number',
+          description: 'Starting verse number (optional — if omitted, returns the entire chapter)',
+        },
+        verse_end: {
+          type: 'number',
+          description: 'Ending verse number (optional — if omitted, returns only verse_start)',
+        },
+      },
+      required: ['book', 'chapter'],
     },
   },
 };
@@ -86,12 +119,15 @@ interface ChatProps {
 
 function ToolCallDisplay({ query, result }: { query: string; result: string }) {
   const [expanded, setExpanded] = useState(false);
+  // If query looks like a reference (starts with capital + has a number), show "Looked up"
+  const isLookup = /^[A-Z0-9]/.test(query) && /\d/.test(query) && !query.includes(' for ');
+  const label = isLookup ? 'Looked up: ' : 'Searched Bible for: ';
   return (
     <div className="chat-tool-call" onClick={() => setExpanded(!expanded)}>
       <div className="chat-tool-call-header">
         <span className="chat-tool-call-icon">{expanded ? '▼' : '▶'}</span>
-        <span className="chat-tool-call-label">Searched Bible for: </span>
-        <span className="chat-tool-call-query">"{query}"</span>
+        <span className="chat-tool-call-label">{label}</span>
+        <span className="chat-tool-call-query">{isLookup ? query : `"${query}"`}</span>
       </div>
       {expanded && (
         <pre className="chat-tool-call-result">{result}</pre>
@@ -291,6 +327,32 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
     return parts.join('\n\n');
   }, [encode, searchPassages, fetchVerseTexts]);
 
+  const executeLookup = useCallback(async (book: string, chapter: number, verseStart?: number, verseEnd?: number): Promise<string> => {
+    const chapterId = `${book}_${chapter}`;
+    const verses = await fetchVerseTexts(chapterId);
+    if (verses.length === 0) {
+      return `No verses found for ${book} ${chapter}. Check the book name and chapter number.`;
+    }
+
+    let selected = verses;
+    if (verseStart !== undefined) {
+      const end = verseEnd ?? verseStart;
+      selected = verses.filter(v => {
+        const num = parseInt(v.verse, 10);
+        return num >= verseStart && num <= end;
+      });
+      if (selected.length === 0) {
+        return `Verses ${verseStart}-${end} not found in ${book} ${chapter}. The chapter has ${verses.length} verses.`;
+      }
+    }
+
+    const header = verseStart !== undefined
+      ? `## ${book} ${chapter}:${verseStart}${verseEnd && verseEnd !== verseStart ? `-${verseEnd}` : ''}`
+      : `## ${book} ${chapter}`;
+    const verseLines = selected.map(v => `v${v.verse}: "${v.text}"`).join('\n');
+    return `${header}\n${verseLines}`;
+  }, [fetchVerseTexts]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
@@ -316,6 +378,13 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
     }
   }, [input, streaming, apiKey]);
 
+  const handleStop = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }, []);
+
   const runToolLoop = async (key: string) => {
     const MAX_ITERATIONS = 10;
     for (let i = 0; i < MAX_ITERATIONS; i++) {
@@ -333,7 +402,7 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
             { role: 'system', content: SYSTEM_PROMPT },
             ...apiHistoryRef.current,
           ],
-          tools: [SEARCH_TOOL],
+          tools: [SEARCH_TOOL, LOOKUP_TOOL],
           stream: true,
         }),
         signal: abortRef.current.signal,
@@ -356,9 +425,26 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
       let assistantIndex: number | null = null;
 
       while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        let aborted = false;
+        try {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') {
+            aborted = true;
+          } else {
+            throw err;
+          }
+        }
+
+        if (aborted) {
+          // Save partial content to API history for conversation continuity
+          if (assistantContent) {
+            apiHistoryRef.current.push({ role: 'assistant', content: assistantContent });
+          }
+          return;
+        }
 
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
@@ -456,34 +542,69 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
 
       // Execute each tool call and show inline
       for (const tc of toolCalls) {
+        let displayQuery = '';
+        let result = '';
+
         if (tc.function.name === 'search_bible') {
-          let query = '';
           try {
             const args = JSON.parse(tc.function.arguments);
-            query = args.query || '';
+            displayQuery = args.query || '';
           } catch {
-            query = tc.function.arguments;
+            displayQuery = tc.function.arguments;
           }
 
-          setToolStatus(`Searching Bible for: "${query}"...`);
-          const result = await executeSearch(query);
+          setToolStatus(`Searching Bible for: "${displayQuery}"...`);
+          result = await executeSearch(displayQuery);
           setToolStatus(null);
+        } else if (tc.function.name === 'lookup_passage') {
+          let book = '', chapter = 0, verseStart: number | undefined, verseEnd: number | undefined;
+          try {
+            const args = JSON.parse(tc.function.arguments);
+            book = args.book || '';
+            chapter = args.chapter || 0;
+            verseStart = args.verse_start;
+            verseEnd = args.verse_end;
+          } catch {
+            book = tc.function.arguments;
+          }
 
-          // Add tool call display message
-          setDisplayMessages(prev => [...prev, { type: 'tool_call', query, result }]);
-
-          // Add tool result to API history
-          apiHistoryRef.current.push({
-            role: 'tool',
-            content: result,
-            tool_call_id: tc.id,
-          });
+          displayQuery = verseStart !== undefined
+            ? `${book} ${chapter}:${verseStart}${verseEnd && verseEnd !== verseStart ? `-${verseEnd}` : ''}`
+            : `${book} ${chapter}`;
+          setToolStatus(`Looking up ${displayQuery}...`);
+          result = await executeLookup(book, chapter, verseStart, verseEnd);
+          setToolStatus(null);
         }
+
+        // Add tool call display message
+        setDisplayMessages(prev => [...prev, {
+          type: 'tool_call',
+          query: displayQuery,
+          result,
+        }]);
+
+        // Add tool result to API history
+        apiHistoryRef.current.push({
+          role: 'tool',
+          content: result,
+          tool_call_id: tc.id,
+        });
       }
 
       // Loop continues to get the model's response after tool results
     }
   };
+
+  const handleNewChat = useCallback(() => {
+    if (streaming) {
+      if (abortRef.current) abortRef.current.abort();
+    }
+    setDisplayMessages([]);
+    apiHistoryRef.current = [];
+    setInput('');
+    setToolStatus(null);
+    setStreaming(false);
+  }, [streaming]);
 
   if (!apiKey) {
     return (
@@ -523,7 +644,12 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
             <span className="model-picker-arrow">&#9662;</span>
           </button>
         </div>
-        <button onClick={onDisconnect} className="disconnect-button">Disconnect</button>
+        <div className="chat-header-right">
+          {displayMessages.length > 0 && (
+            <button onClick={handleNewChat} className="new-chat-button">New Chat</button>
+          )}
+          <button onClick={onDisconnect} className="disconnect-button">Disconnect</button>
+        </div>
       </div>
       <div className="chat-messages">
         {displayMessages.length === 0 && (
@@ -569,9 +695,11 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
           disabled={streaming || isLoading}
           className="chat-input"
         />
-        <button type="submit" disabled={streaming || isLoading || !input.trim()} className="chat-send">
-          {streaming ? <span className="chat-spinner" /> : 'Send'}
-        </button>
+        {streaming ? (
+          <button type="button" onClick={handleStop} className="chat-stop">Stop</button>
+        ) : (
+          <button type="submit" disabled={isLoading || !input.trim()} className="chat-send">Send</button>
+        )}
       </form>
     </div>
   );

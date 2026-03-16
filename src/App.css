@@ -647,6 +647,27 @@ header h1 {
   }
 }
 
+.chat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.new-chat-button {
+  background: none;
+  border: 1px solid #c9bfb0;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  color: #6b5e50;
+  cursor: pointer;
+}
+
+.new-chat-button:hover {
+  border-color: #8b7355;
+  color: #3a2d1e;
+}
+
 .disconnect-button {
   background: none;
   border: 1px solid #c9bfb0;
@@ -830,6 +851,20 @@ header h1 {
 .chat-send:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.chat-stop {
+  padding: 0.6rem 1.25rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.chat-stop:hover {
+  background: #c82333;
 }
 
 /* Spinner */
