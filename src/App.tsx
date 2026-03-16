@@ -65,7 +65,7 @@ function App() {
     <div className="app">
       <header>
         <h1>Bible RAG</h1>
-        <p className="subtitle">Semantic search across the entire Bible — find chapters by concept, topic, or theme</p>
+        <p className="subtitle">AI-powered Bible study grounded in actual scripture — every answer verified against the text</p>
       </header>
 
       {error && <div className="error">Error: {error}</div>}
