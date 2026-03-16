@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build (rebuilt on deploy)
+dist/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local

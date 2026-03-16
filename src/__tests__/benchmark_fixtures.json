@@ -1,0 +1,64 @@
+{
+  "benchmarks": [
+    {
+      "name": "Good Samaritan",
+      "query": "the good samaritan helps a beaten man",
+      "expected": ["Luke_10"],
+      "maxRank": 5
+    },
+    {
+      "name": "Water into wine",
+      "query": "jesus turns water into wine at a wedding",
+      "expected": ["John_2"],
+      "maxRank": 3
+    },
+    {
+      "name": "David kills Goliath",
+      "query": "david kills goliath with a sling and stone",
+      "expected": ["1 Samuel_17"],
+      "maxRank": 3
+    },
+    {
+      "name": "Burning bush",
+      "query": "the burning bush speaks to moses",
+      "expected": ["Exodus_3"],
+      "maxRank": 10
+    },
+    {
+      "name": "Daniel in the lions den",
+      "query": "daniel survives the lions den",
+      "expected": ["Daniel_6"],
+      "maxRank": 10
+    },
+    {
+      "name": "Raising of Lazarus",
+      "query": "jesus raises lazarus from the dead",
+      "expected": ["John_11"],
+      "maxRank": 3
+    },
+    {
+      "name": "Walls of Jericho",
+      "query": "the walls of jericho fall down",
+      "expected": ["Joshua_6"],
+      "maxRank": 5
+    },
+    {
+      "name": "Peter denies Jesus",
+      "query": "peter denies jesus three times",
+      "expected": ["Luke_22", "Matthew_26", "Mark_14", "John_18"],
+      "maxRank": 5
+    },
+    {
+      "name": "Shipwreck of Paul",
+      "query": "paul shipwrecked on the way to rome",
+      "expected": ["Acts_27"],
+      "maxRank": 5
+    },
+    {
+      "name": "Feeding of the 5000",
+      "query": "jesus feeds five thousand with loaves and fish",
+      "expected": ["John_6", "Matthew_14", "Mark_6", "Luke_9"],
+      "maxRank": 5
+    }
+  ]
+}
