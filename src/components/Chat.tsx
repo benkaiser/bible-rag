@@ -669,7 +669,9 @@ export function Chat({ apiKey, connecting, onConnect, onDisconnect, encode, sear
           return (
             <div key={i} className={`chat-message chat-message-${msg.role}`}>
               <div className="chat-message-content">
-                {msg.role === 'assistant' ? <Markdown>{msg.content}</Markdown> : msg.content}
+                {msg.role === 'assistant'
+                  ? <Markdown key={msg.content.length}>{msg.content}</Markdown>
+                  : msg.content}
               </div>
             </div>
           );
