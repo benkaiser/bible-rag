@@ -4,6 +4,24 @@
   padding: 0;
 }
 
+/* GitHub Corner */
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
+}
+
+@keyframes octocat-wave {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(-25deg); }
+  40%, 80% { transform: rotate(10deg); }
+}
+
+@media (max-width: 500px) {
+  .github-corner svg {
+    width: 60px;
+    height: 60px;
+  }
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f3ef;
@@ -30,6 +48,17 @@ header h1 {
 .subtitle {
   color: #6b5e50;
   font-size: 1.1rem;
+}
+
+.subtitle a {
+  color: #8b7355;
+  text-decoration: underline;
+  text-decoration-color: #c9bfb0;
+}
+
+.subtitle a:hover {
+  color: #3a2d1e;
+  text-decoration-color: #8b7355;
 }
 
 .error {
